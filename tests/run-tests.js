@@ -11,7 +11,7 @@ const root = path.join(__dirname, '..');
 const load = (p) => vm.runInThisContext(fs.readFileSync(p, 'utf8'), { filename: p });
 load(path.join(root, 'frontend/js/demo/gas-shim.js'));
 const order = ['Config', 'Utils', 'Database', 'Validation', 'Auth', 'DesignationService', 'EmployeeService', 'QuestionnaireService',
-  'TimeTrackingService', 'TaskService', 'DifficultyService', 'ReportService', 'WhatsAppService', 'AnalyticsService', 'NotificationService', 'SampleData', 'Code'];
+  'TimeTrackingService', 'TaskService', 'MisService', 'DifficultyService', 'ReportService', 'WhatsAppService', 'AnalyticsService', 'NotificationService', 'SampleData', 'Code'];
 order.forEach((f) => load(path.join(root, 'backend', f + '.gs')));
 CONFIG.DEMO_MODE = true;
 GAS_SHIM.quiet = true;
@@ -97,6 +97,7 @@ test('6. Employees cannot access other employees\' records', () => {
 
 console.log('\nPHASE 3 — Tasks, timers, difficulties');
 const today = today_();
+const U_addDays = (d, n) => formatDate_(new Date(parseDateTime_(d).getTime() + n * 86400000));
 let t1, t2;
 test('7. Task durations calculate correctly (10:00 -> 11:30 = 90 min)', () => {
   t1 = must(api('tasks.save', salesToken, { TaskTitle: 'Customer follow-up', TaskCategory: 'Customer Follow-up', Priority: 'HIGH', StartTime: today + 'T10:00', EndTime: today + 'T11:30', Status: 'COMPLETED' })).task;
@@ -138,6 +139,39 @@ test('Difficulty raised against another department -> delay tracker + task block
   const res = must(api('difficulties.updateStatus', mgrToken, { DifficultyID: d.DifficultyID, status: 'RESOLVED', notes: 'Approved' })).difficulty;
   eq(res.ResolutionStatus, 'RESOLVED'); eq(findById_('TASK_ENTRIES', 'TaskID', t4.TaskID).Status, 'IN PROGRESS');
   must(api('difficulties.save', salesToken, { TaskID: t2.TaskID, ProblemDescription: 'Customer approval delayed', Category: 'Customer Dependency', DelayMinutes: 60 }));
+});
+
+console.log('\nPHASE 3b — Bulk task entry & weekly MIS');
+test('Bulk add: many tasks in one call, with time logs and validation per row', () => {
+  const rows = [];
+  for (let i = 1; i <= 20; i++) rows.push({ TaskTitle: 'Bulk task ' + i, TaskCategory: 'Data Entry', Priority: i % 5 === 0 ? 'HIGH' : 'MEDIUM', Status: i <= 12 ? 'COMPLETED' : 'PENDING' });
+  rows[0].StartTime = today + 'T13:00'; rows[0].EndTime = today + 'T13:30';
+  const before = readTable_('TASK_ENTRIES', { noCache: true }).length;
+  const d = must(api('tasks.bulkSave', misToken, { Date: today, tasks: rows }));
+  eq(d.count, 20); eq(readTable_('TASK_ENTRIES', { noCache: true }).length, before + 20);
+  assert(readTable_('TASK_TIME_LOGS', { noCache: true }).some((l) => l.TaskID === d.tasks[0].TaskID && l.Source === 'MANUAL'), 'time log for timed row');
+  eq(d.tasks[0].CompletionPercent, 100); eq(d.tasks[19].Status, 'PENDING');
+  const bad = mustFail(api('tasks.bulkSave', misToken, { Date: today, tasks: [{ TaskTitle: 'ok task' }, { TaskTitle: '' }, { TaskTitle: 'clash', StartTime: today + 'T13:10', EndTime: today + 'T13:20' }] }), 'VALIDATION');
+  assert(/Row 2/.test(bad.message) && /Row 3/.test(bad.message), 'row errors listed: ' + bad.message);
+  eq(readTable_('TASK_ENTRIES', { noCache: true }).length, before + 20, 'nothing saved when a row fails');
+  mustFail(api('tasks.bulkSave', misToken, { EmployeeID: sales.EmployeeID, Date: today, tasks: [{ TaskTitle: 'not mine' }] }), 'FORBIDDEN');
+});
+test('Weekly MIS: buckets add up; employee sees only self, admin sees everyone', () => {
+  const past = U_addDays(today, -3), future = U_addDays(today, 5);
+  must(api('tasks.bulkSave', misToken, { Date: today, tasks: [{ TaskTitle: 'Overdue one', ExpectedCompletionDate: past }, { TaskTitle: 'Upcoming one', ExpectedCompletionDate: future }] }));
+  const mine = must(api('mis.weekly', misToken, {}));
+  eq(mine.scope, 'SELF'); eq(mine.employees.length, 1); eq(mine.employees[0].EmployeeID, mis.EmployeeID);
+  const r = mine.employees[0];
+  eq(r.completed + r.pending + r.upcoming + r.overdue, r.total, 'buckets sum to total');
+  assert(r.overdue >= 1 && r.upcoming >= 1 && r.completed >= 12, 'bucket counts ' + JSON.stringify(r));
+  assert(mine.tasks.length === r.total && mine.tasks[0].Bucket === 'OVERDUE', 'task list sorted overdue first');
+  eq(mine.days.length, 7);
+  mustFail(api('mis.weekly', misToken, { employeeId: sales.EmployeeID }), 'FORBIDDEN');
+  const all = must(api('mis.weekly', adminToken, {}));
+  eq(all.scope, 'ALL'); assert(all.employees.length >= 5, 'admin sees all employees'); eq(all.tasks.length, 0, 'no task list in the all-employee view');
+  eq(all.totals.total, all.employees.reduce((n, e) => n + e.total, 0));
+  const one = must(api('mis.weekly', adminToken, { employeeId: mis.EmployeeID })); eq(one.employees.length, 1); assert(one.tasks.length > 0, 'drill-down tasks');
+  const monday = weekStartOf_(today); eq(must(api('mis.weekly', adminToken, { weekStart: U_addDays(monday, 3) })).weekStart, monday, 'any day maps to its Monday');
 });
 
 console.log('\nPHASE 4 — Reports & WhatsApp');
