@@ -1,0 +1,46 @@
+# One-time helper: moves the flat-uploaded files into their project folders,
+# commits the result, then deploys frontend/ to GitHub Pages.
+name: Rearrange files and deploy
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/rearrange-and-deploy.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  rearrange-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move files into folders
+        run: |
+          set -e
+          mv_to() { dir="$1"; shift; mkdir -p "$dir"; for f in "$@"; do if [ -f "$f" ]; then git mv "$f" "$dir/$f"; fi; done; }
+          mv_to frontend .nojekyll 404.html index.html
+          mv_to frontend/css styles.css responsive.css
+          mv_to frontend/js analytics.js api.js app.js auth.js config.js dashboard.js difficulty.js employees.js questionnaire.js reports.js settings.js tasks.js tracker.js whatsapp.js
+          mv_to frontend/js/demo backend-bundle.js gas-shim.js
+          mv_to backend AnalyticsService.gs Auth.gs Code.gs Config.gs Database.gs DesignationService.gs DifficultyService.gs EmployeeService.gs NotificationService.gs QuestionnaireService.gs ReportService.gs SampleData.gs TaskService.gs TimeTrackingService.gs Utils.gs Validation.gs WhatsAppService.gs appsscript.json
+          mv_to docs ADMIN_SETUP_GUIDE.md ARCHITECTURE.md DEPLOYMENT_GUIDE.md EMPLOYEE_USER_GUIDE.md TESTING_CHECKLIST.md
+          mv_to tests run-tests.js ui-smoke.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "Move uploaded files into their project folders"
+            git push
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend
+      - id: deployment
+        uses: actions/deploy-pages@v4
