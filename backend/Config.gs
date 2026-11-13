@@ -170,6 +170,8 @@ var CONFIG = {
     WHATSAPP_MANAGEMENT_NUMBER: { value: '', description: 'Management WhatsApp number for department summaries' },
     AUTO_LOCK_ON_APPROVAL: { value: 'TRUE', description: 'Lock report after manager approval' },
     EMAIL_NOTIFICATIONS: { value: 'TRUE', description: 'Send e-mail reminders and summaries' },
+    MAIL_FROM_ADDRESS: { value: 'mis@oakcraft.in', description: 'Sender address for all e-mails (must be a verified "Send mail as" alias of the script owner\'s Gmail; otherwise used as reply-to)' },
+    MAIL_SENDER_NAME: { value: 'Daily Work Tracker Pro', description: 'Sender name shown in e-mails' },
     MAX_TASK_HOURS: { value: '14', description: 'Maximum hours a single task entry may span (validation)' },
     DEFAULT_TIMEZONE: { value: 'Asia/Kolkata', description: 'Display timezone' }
   }
