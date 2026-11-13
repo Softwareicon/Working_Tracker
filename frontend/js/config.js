@@ -7,7 +7,7 @@ var APP_CONFIG = {
 
   // Paste the Google Apps Script Web App URL here (Deploy > New deployment > Web app > URL).
   // Example: 'https://script.google.com/macros/s/AKfycb.../exec'
-  API_URL: 'https://script.google.com/macros/s/AKfycbz5seh6ZZ0de_bcd9PTuJu8YyVtywXxzp_wqRLmK3koMZYRVOMX2Go3xhvEAwMenfBp/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbwD_MAfZxJzw1ffStWGOHWUoQzxFbgnAxmpU1liq1YIgOMNxvWep3ZLDx77ihu3TJF5Zw/exec',
 
   // When API_URL is empty the app runs in DEMO MODE: the real backend code runs inside the browser
   // with an in-memory spreadsheet (sample data) persisted to localStorage. Set to false to disable.
