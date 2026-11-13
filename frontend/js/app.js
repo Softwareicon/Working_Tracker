@@ -44,6 +44,7 @@ var App = {
     { hash: '#/tasks', label: 'Task Management', icon: 'bi-list-task', roles: ['ALL'] },
     { hash: '#/difficulty', label: 'Difficulty Tracker', icon: 'bi-exclamation-triangle', roles: ['ALL'] },
     { section: 'Reports & insights' },
+    { hash: '#/mis', label: 'Weekly MIS', icon: 'bi-calendar-week', roles: ['ALL'] },
     { hash: '#/reports', label: 'Employee Reports', icon: 'bi-file-earmark-text', roles: ['ALL'] },
     { hash: '#/department-reports', label: 'Department Reports', icon: 'bi-diagram-3', roles: ['SUPER_ADMIN', 'ADMIN', 'DEPARTMENT_MANAGER'] },
     { hash: '#/analytics', label: 'Analytics', icon: 'bi-bar-chart-line', roles: ['SUPER_ADMIN', 'ADMIN', 'DEPARTMENT_MANAGER'] },
@@ -57,7 +58,6 @@ var App = {
     U.qs('#sidebar-close').addEventListener('click', function () { App.sidebar(false); });
     U.qs('#sidebar-backdrop').addEventListener('click', function () { App.sidebar(false); });
     U.qs('#btn-logout').addEventListener('click', function () { Auth.logout(); });
-    U.qs('#brand-company').textContent = APP_CONFIG.COMPANY_NAME;
     document.title = APP_CONFIG.APP_NAME;
     if (API.isDemo()) U.qs('#demo-pill').classList.remove('d-none');
     if (API.token()) {
@@ -70,7 +70,6 @@ var App = {
     localStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(boot.user));
     U.qs('#login-view').classList.add('d-none');
     U.qs('#app-shell').classList.remove('d-none');
-    U.qs('#brand-company').textContent = (boot.settings && boot.settings.COMPANY_NAME) || APP_CONFIG.COMPANY_NAME;
     U.qs('#topbar-date').textContent = U.longDate(U.today());
     App.renderNav();
     if (!location.hash || location.hash === '#/' || location.hash === '#/login') location.hash = '#/dashboard';
