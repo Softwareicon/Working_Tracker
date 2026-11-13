@@ -80,9 +80,10 @@ var Tracker = {
         (t.TaskDescription ? '<div class="small text-muted mt-1">' + U.esc(t.TaskDescription) + '</div>' : '') +
         '<div class="meta"><span><i class="bi bi-tag me-1"></i>' + U.esc(t.TaskCategory) + '</span><span><i class="bi bi-stopwatch me-1"></i>' + U.dur(t.TimeSpentMinutes) + '</span>' + (t.StartLabel ? '<span><i class="bi bi-clock me-1"></i>' + U.esc(t.StartLabel) + (t.EndLabel ? ' – ' + U.esc(t.EndLabel) : '') + '</span>' : '') + '<span><i class="bi bi-percent me-1"></i>' + t.CompletionPercent + '%</span>' + (t.RelatedDepartment ? '<span><i class="bi bi-diagram-2 me-1"></i>' + U.esc(t.RelatedDepartment) + '</span>' : '') + (t.PendingReason ? '<span class="text-warning"><i class="bi bi-info-circle me-1"></i>' + U.esc(t.PendingReason) + '</span>' : '') + '</div></div><div class="actions">' + btns + '</div></div>';
     };
-    p.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"><div class="text-muted small">Record every activity as a task. Use the timer for live tracking, or enter start/end times manually.</div>' + (locked ? '<span class="badge text-bg-warning"><i class="bi bi-lock me-1"></i>Locked after approval</span>' : '<button class="btn btn-primary" data-add><i class="bi bi-plus-circle me-1"></i>Add task</button>') + '</div>' +
+    p.innerHTML = '<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2"><div class="text-muted small">Record every activity as a task. Use the timer for live tracking, or enter start/end times manually.</div>' + (locked ? '<span class="badge text-bg-warning"><i class="bi bi-lock me-1"></i>Locked after approval</span>' : '<div class="d-flex gap-2"><button class="btn btn-outline-primary" data-bulk><i class="bi bi-list-check me-1"></i>Bulk add tasks</button><button class="btn btn-primary" data-add><i class="bi bi-plus-circle me-1"></i>Add task</button></div>') + '</div>' +
       (s.tasks.length ? (open.length ? '<h6 class="text-muted small text-uppercase fw-bold mb-2">Open tasks (' + open.length + ')</h6>' + open.map(card).join('') : '') + (done.length ? '<h6 class="text-muted small text-uppercase fw-bold mb-2 mt-3">Completed (' + done.length + ')</h6>' + done.map(card).join('') : '') : App.empty('No tasks recorded for ' + U.dmy(s.date) + '. Add your first task to start tracking.', 'bi-journal-plus'));
     var add = U.qs('[data-add]', p); if (add) add.addEventListener('click', function () { Tracker.taskForm(null); });
+    var bulk = U.qs('[data-bulk]', p); if (bulk) bulk.addEventListener('click', function () { Tracker.bulkForm(); });
     U.qsa('[data-timer]', p).forEach(function (b) { b.addEventListener('click', function () { Tracker.timer(b.getAttribute('data-id'), b.getAttribute('data-timer')); }); });
     U.qsa('[data-edit]', p).forEach(function (b) { b.addEventListener('click', function () { Tracker.taskForm(Tracker.task(b.getAttribute('data-edit'))); }); });
     U.qsa('[data-del]', p).forEach(function (b) { b.addEventListener('click', function () { var t = Tracker.task(b.getAttribute('data-del')); App.confirm('Delete task <b>' + U.esc(t.TaskTitle) + '</b> and its time entries?', { danger: true, okText: 'Delete' }).then(function (ok) { if (ok) API.call('tasks.delete', { TaskID: t.TaskID }).then(function () { App.toast('Task deleted', 'success'); Tracker.reload(); }); }); }); });
@@ -133,6 +134,67 @@ var Tracker = {
     };
     U.qs('[data-save]', m.el).addEventListener('click', function () { save(false); });
     var ss = U.qs('[data-save-start]', m.el); if (ss) ss.addEventListener('click', function () { save(true); });
+  },
+
+  bulkForm: function () {
+    var s = Tracker.state, boot = App.state.boot;
+    var row = function (n) {
+      return '<tr data-row><td class="text-muted small align-middle" data-num>' + n + '</td>' +
+        '<td><input class="form-control form-control-sm" name="TaskTitle" maxlength="200" placeholder="Task title *" style="min-width:200px"><textarea class="form-control form-control-sm mt-1" name="TaskDescription" rows="1" placeholder="Details (optional)"></textarea></td>' +
+        '<td><select class="form-select form-select-sm" name="TaskCategory" style="min-width:140px">' + U.opts(boot.lists.taskCategories, 'Other') + '</select></td>' +
+        '<td><select class="form-select form-select-sm" name="Priority" style="min-width:100px">' + U.opts(boot.lists.taskPriorities, 'MEDIUM') + '</select></td>' +
+        '<td><select class="form-select form-select-sm" name="Status" style="min-width:120px">' + U.opts(boot.lists.taskStatuses, 'COMPLETED') + '</select></td>' +
+        '<td><input type="time" class="form-control form-control-sm" name="Start" style="min-width:95px"></td>' +
+        '<td><input type="time" class="form-control form-control-sm" name="End" style="min-width:95px"></td>' +
+        '<td><input type="date" class="form-control form-control-sm" name="ExpectedCompletionDate" style="min-width:130px" title="Expected completion date"><input class="form-control form-control-sm mt-1" name="Remarks" placeholder="Remarks / pending reason" style="min-width:130px"></td>' +
+        '<td class="align-middle"><button type="button" class="btn btn-sm btn-light text-danger" data-rm title="Remove row"><i class="bi bi-x-lg"></i></button></td></tr>';
+    };
+    var m = App.modal({ title: 'Bulk add tasks — ' + U.dmy(s.date), size: 'xl', static: true,
+      body: '<div class="d-flex flex-wrap gap-2 align-items-center mb-2"><span class="small text-muted me-auto">Fill one row per task. Only the title is required. Start/end time is optional; leave the expected date blank for tasks finished today.</span>' +
+        '<button type="button" class="btn btn-sm btn-light" data-paste><i class="bi bi-clipboard-plus me-1"></i>Paste a list</button><button type="button" class="btn btn-sm btn-light" data-more="1"><i class="bi bi-plus"></i> 1 row</button><button type="button" class="btn btn-sm btn-light" data-more="5"><i class="bi bi-plus"></i> 5 rows</button></div>' +
+        '<div class="d-none mb-2" data-paste-box><textarea class="form-control form-control-sm" rows="5" placeholder="One task title per line (you can paste from Excel / WhatsApp)"></textarea><div class="mt-1 text-end"><button type="button" class="btn btn-sm btn-primary" data-paste-apply>Add these as rows</button></div></div>' +
+        '<div class="table-responsive"><table class="table table-sm align-top mb-0"><thead><tr><th>#</th><th>Task / details</th><th>Category</th><th>Priority</th><th>Status</th><th>Start</th><th>End</th><th>Expected by / remarks</th><th></th></tr></thead><tbody data-rows>' + [1, 2, 3, 4, 5].map(row).join('') + '</tbody></table></div>' +
+        '<div class="alert alert-danger small mt-2 mb-0 d-none" data-errors></div>',
+      footer: '<span class="small text-muted me-auto" data-count></span><button class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" data-save><i class="bi bi-check2-all me-1"></i>Save all tasks</button>' });
+    var body = U.qs('[data-rows]', m.el);
+    var renumber = function () { var rows = U.qsa('[data-row]', body); rows.forEach(function (r, i) { U.qs('[data-num]', r).textContent = i + 1; }); var n = rows.filter(function (r) { return U.qs('[name=TaskTitle]', r).value.trim(); }).length; U.qs('[data-count]', m.el).textContent = n + ' task' + (n === 1 ? '' : 's') + ' ready'; };
+    var addRows = function (n) { for (var i = 0; i < n; i++) body.insertAdjacentHTML('beforeend', row(0)); renumber(); };
+    U.qsa('[data-more]', m.el).forEach(function (b) { b.addEventListener('click', function () { addRows(+b.getAttribute('data-more')); }); });
+    body.addEventListener('click', function (e) { var b = e.target.closest('[data-rm]'); if (!b) return; var r = b.closest('[data-row]'); if (U.qsa('[data-row]', body).length > 1) r.remove(); else U.qsa('input,textarea', r).forEach(function (x) { x.value = ''; }); renumber(); });
+    body.addEventListener('input', renumber);
+    U.qs('[data-paste]', m.el).addEventListener('click', function () { U.qs('[data-paste-box]', m.el).classList.toggle('d-none'); });
+    U.qs('[data-paste-apply]', m.el).addEventListener('click', function () {
+      var ta = U.qs('[data-paste-box] textarea', m.el);
+      var titles = ta.value.split(/\r?\n/).map(function (x) { return x.replace(/^\s*(\d+[.)]|[-•*])\s*/, '').trim(); }).filter(Boolean);
+      titles.forEach(function (t) {
+        var empty = U.qsa('[data-row]', body).filter(function (r) { return !U.qs('[name=TaskTitle]', r).value.trim(); })[0];
+        if (!empty) { body.insertAdjacentHTML('beforeend', row(0)); empty = U.qsa('[data-row]', body).pop(); }
+        U.qs('[name=TaskTitle]', empty).value = t.substring(0, 200);
+      });
+      ta.value = ''; U.qs('[data-paste-box]', m.el).classList.add('d-none'); renumber();
+    });
+    renumber();
+    U.qs('[data-save]', m.el).addEventListener('click', function () {
+      var errBox = U.qs('[data-errors]', m.el); errBox.classList.add('d-none');
+      var tasks = [], problems = [];
+      U.qsa('[data-row]', body).forEach(function (r, i) {
+        var v = function (n) { var el = U.qs('[name=' + n + ']', r); return el ? el.value.trim() : ''; };
+        if (!v('TaskTitle')) { if (v('TaskDescription') || v('Start') || v('End') || v('Remarks')) problems.push('Row ' + (i + 1) + ': task title is required'); return; }
+        if (!!v('Start') !== !!v('End')) problems.push('Row ' + (i + 1) + ': enter both start and end time, or neither');
+        var st = v('Status');
+        tasks.push({ TaskTitle: v('TaskTitle'), TaskDescription: v('TaskDescription'), TaskCategory: v('TaskCategory'), Priority: v('Priority'), Status: st,
+          StartTime: v('Start') ? s.date + 'T' + v('Start') : '', EndTime: v('End') ? s.date + 'T' + v('End') : '', ExpectedCompletionDate: v('ExpectedCompletionDate'),
+          Remarks: st === 'COMPLETED' ? v('Remarks') : '', PendingReason: st === 'COMPLETED' ? '' : v('Remarks') });
+      });
+      if (!tasks.length) problems.push('Add at least one task title');
+      if (problems.length) { errBox.innerHTML = problems.map(U.esc).join('<br>'); errBox.classList.remove('d-none'); return; }
+      API.call('tasks.bulkSave', { EmployeeID: s.employeeId, Date: s.date, tasks: tasks }, { silent: true }).then(function (d) {
+        m.close(); App.toast(d.count + ' tasks added', 'success'); Tracker.reload();
+      }).catch(function (e) {
+        var list = e.data && e.data.errors ? e.data.errors : [e.message];
+        errBox.innerHTML = list.map(U.esc).join('<br>'); errBox.classList.remove('d-none');
+      });
+    });
   },
 
   manualTime: function (t) {
