@@ -1,0 +1,40 @@
+/* Responsive rules — tablet & mobile */
+@media (max-width: 991.98px) {
+  .sidebar { transform: translateX(-100%); box-shadow: 0 0 40px rgba(0, 0, 0, .3); }
+  .sidebar.open { transform: none; }
+  .sidebar-backdrop.show { display: block; }
+  .main-area { margin-left: 0; }
+  .topbar { padding: 0 14px; height: 58px; }
+  .view { padding: 14px; }
+  .topbar-date { display: none; }
+  .page-head h1 { font-size: 19px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi .value { font-size: 22px; }
+  .report-doc { padding: 18px 16px; }
+  .report-doc .sum-grid { grid-template-columns: repeat(2, 1fr); }
+  .chart-box { height: 240px; }
+  .filters > div { min-width: calc(50% - 10px); }
+  .task-card { flex-wrap: wrap; }
+  .task-card .actions { margin-left: 0; width: 100%; }
+  .task-card .actions .btn { flex: 1; }
+  .sticky-submit { margin: 16px -14px -14px; }
+}
+@media (max-width: 575.98px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .filters > div { min-width: 100%; }
+  .page-head { flex-direction: column; align-items: stretch; }
+  .page-head .actions-right { display: flex; gap: 8px; flex-wrap: wrap; }
+  .page-head .actions-right .btn { flex: 1; }
+  .report-actions .btn { flex: 1 1 45%; }
+  .table td, .table th { font-size: 12.5px; padding: .45rem .5rem; }
+  .yesno .btn { min-width: 0; flex: 1; }
+  .report-doc .rhead { flex-direction: column; }
+  .report-doc .rhead .rdate { text-align: left; }
+  .modal-dialog { margin: .5rem; }
+  .login-card { padding: 26px 20px; }
+}
+/* Touch targets */
+@media (pointer: coarse) {
+  .btn-sm { padding: .45rem .7rem; }
+  .task-card .actions .btn { min-height: 38px; }
+}
