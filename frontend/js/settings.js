@@ -16,7 +16,7 @@ var Settings = {
   },
 
   general: function (el, d) {
-    var groups = { 'Company & working day': ['COMPANY_NAME', 'WORK_START', 'WORK_END', 'WORKING_HOURS', 'BREAK_MINUTES', 'MAX_TASK_HOURS', 'DEFAULT_TIMEZONE'], 'Automation schedule': ['REMINDER_MINUTES_BEFORE_CLOSE', 'REPORT_GENERATION_TIME', 'MANAGER_SUMMARY_TIME', 'EMAIL_NOTIFICATIONS'], 'Policies': ['MANUAL_TIME_POLICY', 'AUTO_LOCK_ON_APPROVAL'], 'WhatsApp': ['WHATSAPP_DEFAULT_NUMBER', 'WHATSAPP_MANAGEMENT_NUMBER'] };
+    var groups = { 'Company & working day': ['COMPANY_NAME', 'WORK_START', 'WORK_END', 'WORKING_HOURS', 'BREAK_MINUTES', 'MAX_TASK_HOURS', 'DEFAULT_TIMEZONE'], 'Automation schedule': ['REMINDER_MINUTES_BEFORE_CLOSE', 'REPORT_GENERATION_TIME', 'MANAGER_SUMMARY_TIME', 'EMAIL_NOTIFICATIONS'], 'Policies': ['MANUAL_TIME_POLICY', 'AUTO_LOCK_ON_APPROVAL'], 'WhatsApp': ['WHATSAPP_DEFAULT_NUMBER', 'WHATSAPP_MANAGEMENT_NUMBER'], 'E-mail sender': ['MAIL_FROM_ADDRESS', 'MAIL_SENDER_NAME'] };
     var byKey = {}; d.settings.forEach(function (s) { byKey[s.key] = s; });
     var ctrl = function (s) {
       if (['WORK_START', 'WORK_END', 'REPORT_GENERATION_TIME', 'MANAGER_SUMMARY_TIME'].indexOf(s.key) !== -1) return '<input type="time" class="form-control" name="' + s.key + '" value="' + U.attr(s.value) + '">';
