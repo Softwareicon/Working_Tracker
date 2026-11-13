@@ -51,6 +51,8 @@ var ROUTES_ = {
   'tasks.manualTime': { fn: tasksManualTime_ },
   'tasks.logs': { fn: tasksLogs_ },
   'tasks.deleteLog': { fn: tasksDeleteLog_ },
+  'tasks.bulkSave': { fn: tasksBulkSave_ },
+  'mis.weekly': { fn: misWeekly_ },
   'time.timeline': { fn: timelineGet_ },
   // Difficulties
   'difficulties.list': { fn: difficultiesList_ },
