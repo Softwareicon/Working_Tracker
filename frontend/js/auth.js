@@ -8,7 +8,7 @@ var Auth = {
     v.classList.remove('d-none');
     var demo = API.isDemo();
     v.innerHTML = '<div class="login-card">' +
-      '<div class="login-brand"><div class="brand-mark"><i class="bi bi-check2-square"></i></div><div><div class="fw-bold fs-5">' + U.esc(APP_CONFIG.APP_NAME) + '</div><div class="small-muted">' + U.esc(APP_CONFIG.COMPANY_NAME) + '</div></div></div>' +
+      '<div class="login-brand"><div class="brand-mark"><i class="bi bi-check2-square"></i></div><div><div class="fw-bold fs-5">' + U.esc(APP_CONFIG.APP_NAME) + '</div></div></div>' +
       '<div class="login-steps"><span class="on" data-step="1"></span><span data-step="2"></span></div>' +
       (message ? '<div class="alert alert-warning py-2 small">' + U.esc(message) + '</div>' : '') +
       '<div id="login-step-email"><h5 class="mb-1">Sign in</h5><p class="text-muted mb-3">Enter your authorized work e-mail. We will send you a one-time login code.</p>' +
