@@ -9,12 +9,31 @@ function sendEmail_(type, to, subject, htmlBody, textBody) {
   var row = { NotificationID: generateId_('NTF'), Type: type, Recipient: to, Channel: 'EMAIL', Subject: subject, Message: (textBody || htmlBody).substring(0, 2000), Status: 'SENT', Error: '' };
   try {
     if (!to) throw new Error('No recipient');
-    MailApp.sendEmail({ to: to, subject: subject, htmlBody: htmlBody, body: textBody || htmlBody.replace(/<[^>]+>/g, '') });
+    deliverEmail_(to, subject, htmlBody, textBody || htmlBody.replace(/<[^>]+>/g, ''));
   } catch (e) {
     row.Status = 'FAILED'; row.Error = String(e.message || e).substring(0, 500);
   }
   try { insert_('NOTIFICATION_LOGS', row); } catch (e2) { }
   return row.Status === 'SENT';
+}
+
+/**
+ * Sends from MAIL_FROM_ADDRESS when it is a verified "Send mail as" alias of the account that owns
+ * the script (Gmail > Settings > Accounts). Otherwise sends from the owner account with
+ * MAIL_FROM_ADDRESS as the reply-to address.
+ */
+function deliverEmail_(to, subject, htmlBody, textBody) {
+  var from = trim_(getSetting_('MAIL_FROM_ADDRESS')).toLowerCase();
+  var name = trim_(getSetting_('MAIL_SENDER_NAME')) || CONFIG.APP_NAME;
+  var aliases = [];
+  try { aliases = GmailApp.getAliases().map(function (a) { return String(a).toLowerCase(); }); } catch (e) { }
+  if (from && aliases.indexOf(from) !== -1) {
+    GmailApp.sendEmail(to, subject, textBody, { htmlBody: htmlBody, from: from, name: name, replyTo: from });
+    return;
+  }
+  var opts = { to: to, subject: subject, htmlBody: htmlBody, body: textBody, name: name };
+  if (from) opts.replyTo = from;
+  MailApp.sendEmail(opts);
 }
 
 function emailShell_(title, bodyHtml) {
